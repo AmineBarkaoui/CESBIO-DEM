@@ -22,6 +22,15 @@ from scipy.interpolate import interp1d
 import scipy.sparse as sp
 import scipy.sparse.linalg as spl
 import matplotlib.pyplot as plt
+
+
+
+
+# =============================================================================
+#               kalman 1d
+# =============================================================================
+
+
 # =============================================================================
 # ### Pour du temps
 # =============================================================================
@@ -69,6 +78,7 @@ def Afficher_Kalman_1D_temporel():
     plt.scatter(range(N),M,c='pink',marker="x",s=1)
     plt.plot(np.ones(N)*(Incertitude_mes/2)+val_moy)
     plt.legend(["resultat","valeur vraie","observations"])
+    plt.show()
 
 Afficher_Kalman_1D_temporel()
 
@@ -95,11 +105,14 @@ def Kalman_1D_spatiale(Mesures_obs,Valeurs_modele,Estim_init,Err_mes,Err_estim):
     for i in range(taille):
         m=Mesures_obs[i]      
     
+    
         #KG gain de Kalman
         KG=(Err_estim)/(Err_mes+Err_estim)
         
+        
         #estim
         estim=estim+KG*(Mesures_obs[i] - Valeurs_modele[i]) # remplacer estim par valeurs théoriques
+        
         
         #err e
         Err_estim=(1-KG)*Err_estim
@@ -117,6 +130,7 @@ def Kalman_1D_spatiale(Mesures_obs,Valeurs_modele,Estim_init,Err_mes,Err_estim):
 
 
 def Afficher_Kalman_1D_spatial():
+    
     N=80
     val_moy=20
     Incertitude_mes=0.1 #  comment le trouver ?
@@ -268,7 +282,7 @@ def Afficher_Kalman_1D_spatial():
 
     Modele=np.ones(len(Mesures))
     Estimateur=1
-    Incertitude_est= 10
+    Incertitude_est= 0.1
     
     Resu,KG=Kalman_1D_spatiale(Mesures,Modele,Modele[0],Incertitude_mes,Incertitude_est)
     
@@ -279,10 +293,83 @@ def Afficher_Kalman_1D_spatial():
     plt.plot(np.ones(N)*(Incertitude_mes/2)+val_moy)
 
 
-Afficher_Kalman_1D_spatial()
-#%%
+
+
 # =============================================================================
 # ### Affichage Kalman spatial 1D
 # =============================================================================
+# Afficher_Kalman_1D_spatial()
 
 
+
+
+
+# =============================================================================
+# =============================================================================
+# # **************************************************************************
+# =============================================================================
+# =============================================================================
+
+
+
+
+
+
+
+# =============================================================================
+#                           Kalman 2D A COMPLETER
+# =============================================================================
+
+
+def Kalman2D(X,Y,d_x,d_y, ):   #B,u matrice et vecteur des commandes en entrée (forces, terme source)
+  k=0  
+    # vecteur d'état
+  x=[0, 0 ,0] # z , biais X, biais Y
+  P=np.zeros(3,3)
+  
+  # matrice de Transition
+      # d_x, d_y les dérivées partielles
+  
+  F=np.array([ [1, d_x, d_y ]
+               [0,  1,   0  ]
+               [0,  0,   0  ] ])
+  
+  #matrice d'observation
+  H=np.array([1,0,0]).T
+  
+  R=np.zeros(3,3)
+  
+  #mesures en entrée
+  u=np.zeros((len(X)*len(Y),3)) #à remplir 
+                                #une matrice de taille X*Y x 3, chaque ligne est l'entrée (mesure, biais x, biais y)
+                                # et à chaque itération on prendra u[k]: le kème triplet des entrées (mesure, bx, by) 
+  B=np.zeros(3,3)   #à modifier
+  
+  # bruit et matrice de covariance
+  w=np.zeros((len(X)*len(Y),3))
+  Q=np.zeros(3,3) 
+  
+  
+  for i in range(X):
+      for j in range(Y):
+          #Prediction
+          x=F@x + B@u[k] + w[k]
+          P=F@(P)@F.T + Q
+          
+          
+          #Mise à jour
+              #mesure
+          y=0
+              #gain de Kalman
+          K=(P@H)@np.linalg.inv(( H@P@H.T ) + R)
+          
+          x=x +K@(y-H@x)
+          P=(np.eye(3)-K@H)@P
+          
+          k+=1
+          
+          
+  return 0 # a modif
+    
+    
+       
