@@ -320,56 +320,78 @@ def Afficher_Kalman_1D_spatial():
 #                           Kalman 2D A COMPLETER
 # =============================================================================
 
-
-def Kalman2D(X,Y,d_x,d_y, ):   #B,u matrice et vecteur des commandes en entrée (forces, terme source)
+############ pb sur u et xSRTM
+def Kalman2D(Mat,u,xSRTM,d_x,d_y ):  
+    # image de taille X*Y
+                        
+    # d_x, d_y = dérivée partielle
+            
+    # u: mesure primaire STRM (?)
+    
+    #xSTRM: vecteur mesure secondaire
+                                    
   k=0  
     # vecteur d'état
-  x=[0, 0 ,0] # z , biais X, biais Y
-  P=np.zeros(3,3)
+  xk=[0, 0 ,0] # z , biais X, biais Y
+  Pk=np.zeros((3,3))
   
   # matrice de Transition
       # d_x, d_y les dérivées partielles
   
-  F=np.array([ [1, d_x, d_y ]
-               [0,  1,   0  ]
+  F=np.array([ [1, d_x, d_y ],
+               [0,  1,   0  ],
                [0,  0,   0  ] ])
   
   #matrice d'observation
   H=np.array([1,0,0]).T
   
-  R=np.zeros(3,3)
+  R=np.eye(3)
   
-  #mesures en entrée
-  u=np.zeros((len(X)*len(Y),3)) #à remplir 
+  #mesures en entrée B,u matrice et vecteur des commandes en entrée (forces, terme source)
+  # u=np.zeros((len(X)*len(Y),3)) #à remplir 
                                 #une matrice de taille X*Y x 3, chaque ligne est l'entrée (mesure, biais x, biais y)
                                 # et à chaque itération on prendra u[k]: le kème triplet des entrées (mesure, bx, by) 
-  B=np.zeros(3,3)   #à modifier
+  B=np.ones(3)   #à modifier matrice de u
+  
+  
+  C=np.ones(3)  #matrice de xSRTM, mesure secondaire
+  z=np.ones( (np.shape(Mat)[0]*np.shape(Mat)[1],3) )
   
   # bruit et matrice de covariance
-  w=np.zeros((len(X)*len(Y),3))
-  Q=np.zeros(3,3) 
+  w=np.ones( (np.shape(Mat)[0]*np.shape(Mat)[1],3) )
+  Qk=np.eye(3) 
   
   
-  for i in range(X):
-      for j in range(Y):
+  for i in range(np.shape(Mat)[0]):
+      for j in range(np.shape(Mat)[1]):
           #Prediction
-          x=F@x + B@u[k] + w[k]
-          P=F@(P)@F.T + Q
+          print('1',F@xk)
+          print('2',B*u[k])
+          xk_pred=F@xk + B*u[k] + w[k]
+          Pk_pred=F@(Pk)@F.T + Qk
           
           
           #Mise à jour
-              #mesure
-          y=0
+          
+              #mesure secondaire y
+          yk= C*xSRTM[k] + z[k]
               #gain de Kalman
-          K=(P@H)@np.linalg.inv(( H@P@H.T ) + R)
+          print('k', H@ Pk_pred @H.T)
+          K=(Pk_pred @H) @np.linalg.inv( ( H@ Pk_pred @H.T ) + R )
           
-          x=x +K@(y-H@x)
-          P=(np.eye(3)-K@H)@P
-          
+              #mise à jour xk et Pk
+          xk=xk_pred +K @(yk -H @xk_pred )
+          Pk=(np.eye(3) - K @H) @Pk_pred
           k+=1
           
           
-  return 0 # a modif
-    
-    
-       
+  return xk,Pk # a modif
+
+N=50
+dx=0.5
+dy=0.5
+A=np.ones((N,N))
+mesSAR=np.random.uniform(0,1,N)*5+20        # u
+mesSRTM=mesSAR+np.random.uniform(20,1,N)    # xSRTM
+
+x,P= Kalman2D(A,mesSAR,mesSRTM,dx,dy)       
