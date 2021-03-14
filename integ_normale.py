@@ -11,50 +11,36 @@ import scipy.integrate as spi
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D 
 
-strImgFile = './Data/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+#strImgFile = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
 gdal.UseExceptions()
 ds = gdal.Open(strImgFile) # Data Stack
 
-cols=ds.RasterXSize
-rows= ds.RasterYSize
-bands=ds.RasterCount
-geoT = ds.GetGeoTransform()
-srs = ds.GetProjection() # features of geo projection system
-
-dx, dy = ds.RasterXSize, ds.RasterYSize # [XY]resoltion
-min_x = min(geoT[0], geoT[0]+dx*geoT[1])
-max_x = max(geoT[0], geoT[0]+dx*geoT[1])
-min_y = min(geoT[3], geoT[3] + geoT[-1]*dy)
-max_y = max(geoT[3], geoT[3] + geoT[-1]*dy) # [ geographic coordinates extent ]
-
-ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray()) # Angle phi
-ds_band2 = np.array(ds.GetRasterBand(2).ReadAsArray())
-ds_band3 = np.array(ds.GetRasterBand(3).ReadAsArray())
-ds_band4 = np.array(ds.GetRasterBand(4).ReadAsArray()) # Pente en range
-ds_band5 = np.array(ds.GetRasterBand(5).ReadAsArray()) # Angle azimuthal
-ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
-
-def doublon(Array):
-    list_arr=list(Array)
-    index=[]
-    unique=[]
-    for i in range(len(list_arr)):
-        if not(list_arr[i] in unique):
-            unique.append(list_arr[i])
-            index.append(i)
-    return unique, index
+strImgFile_z = './Data/SRTM30m/geo10Md2zSRTM.tif'
+#strImgFile_z = './Data/LiDAR/geo10mLiGLTd3LiDTM-CHM-AGB.tif'
+gdal.UseExceptions()
+ds_z = gdal.Open(strImgFile_z) # Data Stack
 
 I=10 #nb de découpage sur les x
 J=10 # nb de découpage sur les y
 
-for i in range(I):
-    for j in range(J):
-            if(i==5 and j==5):
-                # plt.figure(figsize=(20,30))
-                ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(int(300+(200*i)/I) , int(725+(200*j)/J) , int(200/I), int(200/J) ))
-                ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(int(300+(200*i)/I) , int(725+(200*j)/J) , int(200/I), int(200/J) ))
-                ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(int(300+(200*i)/I) , int(725+(200*j)/J) , int(200/I), int(200/J) ))
-          
+xp = 20
+yp = 20
+#########################           SRTM
+ox_srtm = 342
+oy_srtm = 759
+ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+
+
+########################            LiDAR
+#ssImg_omg=np.array(ds.GetRasterBand(4).ReadAsArray(362, 779, 20, 20))
+#ssImg_gamm=np.array(ds.GetRasterBand(3).ReadAsArray(362, 779, 20, 20))
+#ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(362, 779, 20, 20))
+#ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(373, 540, 20, 20))
+
 
 def get_normal(az,ran,phi):
     n3_kvh = -np.cos(az)
@@ -68,47 +54,74 @@ def get_normal(az,ran,phi):
     return n1, n2, n3
 
 
-def integ_grad(n1,n2,n3,point):
-    xp = 20 # Vraie largeur d'un pixel selon x
-    yp = 20 # Vraie largeur d'un pixel selon y
-    d = -point.dot(np.array([n1,n2,n3]))
+def integ_grad(n1,n2,n3,point_prev,xp,yp):
+    # d = -point.dot(np.array([n1,n2,n3]))
     
     # plot the surface
 #    xx, yy = np.meshgrid(range(xp), range(yp))
-#    z = (-n1 * xx - n2 * yy - d) * 1. /n3
+#    z = (-n1 * xx - n2 * yy) * 1. /n3
+#    print(z[5,5])
 #    plt3d = plt.figure().gca(projection='3d')
 #    plt3d.plot_surface(xx, yy, z)
 #    plt.xlabel('x'); plt.ylabel('y')
 #    plt.show()
     
     # integrate under the surface
-    f = lambda y,x : (-n1*x-n2*y-d)*1./n3
+    f = lambda y,x : (-n1*x-n2*y)*1./n3
     i = spi.dblquad(f,0,xp,lambda x:0, lambda x:yp)
-    return (i[0]/(xp*yp)) - d - (i[0]/(xp*yp)) # Normalisation ?????
+    return (i[0]/(xp*yp)) + point_prev[2]
 
-# integ_grad(0,0,1,np.array([0.5,0.5,5]))
+# integ_grad(1,0,1,np.array([5,5,-5]),10,10)
 
-def get_z(n1,n2,n3):
+def get_z(n1,n2,n3,xp,yp,init,GCP=None):
     m,n = np.shape(n1)
 #    t1 = -n1/n3
 #    t2 = -n2/n3
     z = np.zeros(n1.shape)
+    z[0,0] = init
+    found = 0
+    pos = 0
+    delta = 0
     for i in range(m):
         for j in range(n): 
             if j != 0:
-                point = np.array([i+0.5,j+0.5,z[i,j-1]])
-                z[i,j] = integ_grad(n1[i,j],n2[i,j],n3[i,j],point) # + z[i,j-1]  Attention à se placer au bord de la facette
+                point = np.array([(i+0.5)*xp,(j+0.5)*yp,z[i,j-1]])
+                z[i,j] = integ_grad(n1[i,j],n2[i,j],n3[i,j],point,xp,yp)
             elif j == 0 and i != 0:
-                point = np.array([i+0.5,j+0.5,z[i-1,j]]) 
-                z[i,j] = integ_grad(n1[i,j],n2[i,j],n3[i,j],point) # + z[i-1,j]   
+                point = np.array([(i+0.5)*xp,(j+0.5)*yp,z[i-1,j]]) 
+                z[i,j] = integ_grad(n1[i,j],n2[i,j],n3[i,j],point,xp,yp)
+                
+#            if GCP[i,j] != 0:
+#                z[i,j] = GCP[i,j]
+#                if found == 0:
+#                    pos = i*n+j
+#                    delta = GCP[i,j] - z[i,j]
+#                found = 1
+#                
+#    condition = False
+#    for i in range(m):
+#        if condition:
+#            break
+#        for j in range(n):
+#            if i*n+j <= pos:
+#                z[i,j] += delta
+#            else:
+#                condition = True
+#                break
+        
     return z
 
 
 n1, n2, n3 = get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
-z = get_z(n1, n2, n3)
+z = get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
 
-xx, yy = np.meshgrid(range(20), range(20))
+xx, yy = np.meshgrid(range(xp), range(yp))
 plt3d = plt.figure().gca(projection='3d')
 plt3d.plot_surface(xx, yy, z)
 plt.title("Test")
+plt.show()
+
+plt3d = plt.figure().gca(projection='3d')
+plt3d.plot_surface(xx, yy, ssImg_z)
+plt.title("Check with z_SRTM")
 plt.show()
