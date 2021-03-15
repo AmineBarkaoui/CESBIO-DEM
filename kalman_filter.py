@@ -72,53 +72,89 @@ def Kalman_DTM(z,u,dx,dy):
             
 
 
-import D:\Documents\integ_normale as integ
-from mpl_toolkits.mplot3d import Axes3D 
 
-strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
-#strImgFile = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
-gdal.UseExceptions()
-ds = gdal.Open(strImgFile) # Data Stack
+def Kalman1D(zSRTM,u,dx,dy ):  
+    # image de taille X*Y
+                        
+    # d_x, d_y = dérivée partielle
+            
+    # u: mesure primaire STRM (?)
+    
+    #xSTRM: vecteur mesure secondaire
+                                    
+  k=0  
+    # vecteur d'état
+  xk=[zSRTM[k], 0,0] # z , biais X, biais Y à calculer 
+  Pk=np.zeros((3,3))
+  
+  # matrice de Transition
+      # d_x, d_y les dérivées partielles
+  
+  F_mil=np.array([ 
+               [1, -dx,  0 ],
+               [0,  1,   0  ],
+               [0,  0,   1  ] ])
+  
+  F_bords=np.array([
+               [1, -dx*np.shape(zSRTM)[0], +dy ],
+               [0,          1            ,  0  ],
+               [0,          0            ,   1 ] ])
+  
+  #matrice d'observation
+  H=np.array([1,0,0]).T
+  
+  R=np.eye(3)
+  
+  #mesures en entrée B,u matrice et vecteur des commandes en entrée (forces, terme source)
+  # u=np.zeros((len(X)*len(Y),3)) #à remplir 
+                                #une matrice de taille X*Y x 3, chaque ligne est l'entrée (mesure, biais x, biais y)
+                                # et à chaque itération on prendra u[k]: le kème triplet des entrées (mesure, bx, by) 
+  B=np.array([[dx,dy],[0,0],[0,0]])   #à modifier matrice de u
+  
+  
+  C=np.ones(3)  #matrice de zSRTM, mesure secondaire
+  #bruit
+  z_noise=np.ones( (np.shape(zSRTM)[0]*np.shape(zSRTM)[1],3) )
+  
+  # bruit et matrice de covariance
+  w=np.ones( (np.shape(Mat)[0]*np.shape(Mat)[1],3) )
+  Qk=np.eye(3) 
+  
 
-strImgFile_z = './Data/SRTM30m/geo10Md2zSRTM.tif'
-#strImgFile_z = './Data/LiDAR/geo10mLiGLTd3LiDTM-CHM-AGB.tif'
-gdal.UseExceptions()
-ds_z = gdal.Open(strImgFile_z) # Data Stack
+  for i in range(np.shape(zSRTM)[0]):
+      for j in range(np.shape(zSRTM)[1]):
 
-I=10 #nb de découpage sur les x
-J=10 # nb de découpage sur les y
-
-xp = 20
-yp = 20
-#########################           SRTM
-ox_srtm = 342
-oy_srtm = 759
-ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-                    
-                    
-n1, n2, n3 = integ.get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
-z = integ.get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
-
-xx, yy = np.meshgrid(range(xp), range(yp))
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, z)
-plt.title("Test")
-plt.show()
-
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z)
-plt.title("Check with z_SRTM")
-plt.show()             
+          # Attribution de la matrice de transition
+          if (k%(np.shape(zSRTM)[1])==0):
+              F=F_bords
+          else:
+              F=F_mil
         
-            
-            
-            
-            
-            
-            
+          #Prediction
+          print('1',F@xk)
+          print('2',B*u[k])
+          xk_pred=F@xk + B*u[k] + w[k]
+          Pk_pred=F@(Pk)@F.T + Qk
+          
+          
+          #Mise à jour
+          
+          #mesure secondaire y
+          yk= C*zSRTM[k] + z_noise[k]
+          
+          #gain de Kalman
+          K=(Pk_pred @H) @np.linalg.inv( ( H@ Pk_pred @H.T ) + R )
+          
+          #mise à jour de xk et Pk
+          xk=xk_pred +K @(yk -H @xk_pred )
+          Pk=(np.eye(3) - K @H) @Pk_pred
+          
+          
+          #Iteration suivante
+          k+=1
+          
+          
+  return xk,Pk # a modif            
             
             
             
