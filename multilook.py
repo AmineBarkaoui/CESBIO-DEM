@@ -1,5 +1,4 @@
 from osgeo import gdal
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
 import scipy.sparse as sp
@@ -64,7 +63,25 @@ def doublon(Array):
     
 # =============================================================================
 
+# 3. Évaluation de la spline de lissage
+    ##############################################
+    
+# Evaluation directe en une multitude de points :
+def eval_spline(xeval,x,sigma,sigma_prime,sigma_seconde,sigma_tierce) :
+    n = len(x)-1
+    A,B,C,D,j = sigma[0],sigma_prime[0],0.,0.,-1
+    Sigmaxx = []
+    for xx in xeval :
+        while j<n and xx >= x[j+1] :
+            j = j+1
+            A,B,C,D = sigma[j],sigma_prime[j],sigma_seconde[j],sigma_tierce[j]
+        hxx = xx-x[max(0,j)]
+        sigmaxx = A+hxx*(B+hxx*(C/2+hxx*D/6))
+        Sigmaxx = Sigmaxx + [sigmaxx]
+    Sigmaxx = np.array(Sigmaxx)
+    return Sigmaxx
 
+# =============================================================================
 
 def Lisser(x,y,rhog):
 
@@ -96,7 +113,6 @@ def Lisser(x,y,rhog):
     
     # a. calcul des sigma''
     #==============================
-    
     # i. construction systeme lineaire
     alphaj = 6./(rho[2:n-1]*h[1:n-2]*h[2:n-1])
     betaj = h[1:n-1] - 6.*(h[1:n-1]+h[2:n])/(rho[2:n]*(h[1:n-1]**2)*h[2:n]) - 6.*(h[0:n-2]+h[1:n-1])/(rho[1:n-1]*(h[1:n-1]**2)*h[0:n-2])
@@ -139,25 +155,11 @@ def Lisser(x,y,rhog):
     # 3. Évaluation de la spline de lissage
     ##############################################
     
-    # a. évaluation directe en une multitude de points :
-    def eval_spline(xeval,x,sigma,sigma_prime,sigma_seconde,sigma_tierce) :
-        A,B,C,D,j = sigma[0],sigma_prime[0],0.,0.,-1
-        Sigmaxx = []
-        for xx in xeval :
-            while j<n and xx >= x[j+1] :
-                j = j+1
-                A,B,C,D = sigma[j],sigma_prime[j],sigma_seconde[j],sigma_tierce[j]
-            hxx = xx-x[max(0,j)]
-            sigmaxx = A+hxx*(B+hxx*(C/2+hxx*D/6))
-            Sigmaxx = Sigmaxx + [sigmaxx]
-        Sigmaxx = np.array(Sigmaxx)
-        return Sigmaxx
-    
-    # b. évaluation de la spline aux neval points
+    # Evaluation de la spline aux neval points
     x_graphe = np.linspace(xmin,xmax,neval)
     sigma_graphe = eval_spline(x_graphe,x,sigma,sigma_prime,sigma_seconde,sigma_tierce)
 
-    return x_graphe, sigma_graphe
+    return sigma,sigma_prime,sigma_seconde,sigma_tierce
 
 
 
@@ -195,15 +197,52 @@ def Afficher_interpolation(x,y,equation,r):
     plt.legend(loc="lower left")
     plt.show()
     
+# =============================================================================
 
-# rhoGlobal=[30]
-# for R in rhoGlobal:
+def shape_data(ssImg_omg,ssImg_gamm):
+    ssImg_omg=ssImg_omg.flatten()
+    ssImg_gamm=ssImg_gamm.flatten()
+    
+    sorted_index=np.argsort(ssImg_omg)
+    ssImg_omg= ssImg_omg[sorted_index]
+    ssImg_gamm=ssImg_gamm[sorted_index]            
+    
+    # ssImg_omg,ind = doublon(ssImg_omg)
+    # ssImg_gamm = ssImg_gamm[ind]
+    
+    ssImg_omg_pos = []
+    ssImg_omg_neg = []
+    ssImg_gamm_pos = []
+    ssImg_gamm_neg = []
+    
+    for m in range(len(ssImg_omg)):
+        if ssImg_gamm[m] < 0:
+            ssImg_omg_neg.append(ssImg_omg[m])
+            ssImg_gamm_neg.append(ssImg_gamm[m])
+        else:
+            ssImg_omg_pos.append(ssImg_omg[m])
+            ssImg_gamm_pos.append(ssImg_gamm[m])
+
+
+    x_neg = np.array(ssImg_omg_neg)
+    y_neg =np.array( ssImg_gamm_neg)
+    
+    x_pos = np.array(ssImg_omg_pos)
+    y_pos =np.array( ssImg_gamm_pos)
+    
+    return x_neg, y_neg, x_pos, y_pos
+
+# =============================================================================
+
 def get_local_relation(Img_omg,Img_gamm,rho,deg):
     k=20                        #taille de la sous image
     I=floor(Img_omg.shape[1]/k) #nb de découpage sur les y
     J=floor(Img_omg.shape[0]/k) # nb de découpage sur les x
     local_relation_neg=np.zeros((Img_omg.shape[0],Img_omg.shape[1],deg+1))
     local_relation_pos=np.zeros((Img_omg.shape[0],Img_omg.shape[1],deg+1))
+    local_xrange_neg=np.zeros((Img_omg.shape[0],Img_omg.shape[1],2))
+    local_xrange_pos=np.zeros((Img_omg.shape[0],Img_omg.shape[1],2))
+
     for i in range(I):
         for j in range(J):
                 ox=k*j
@@ -213,44 +252,22 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                 
                 ssImg_omg=Img_omg[oy:oy+dy, ox:ox+dx]
                 ssImg_gamm=Img_gamm[oy:oy+dy, ox:ox+dx]
-                
-                ssImg_omg=ssImg_omg.flatten()
-                ssImg_gamm=ssImg_gamm.flatten()
-                
-                sorted_index=np.argsort(ssImg_omg)
-                ssImg_omg= ssImg_omg[sorted_index]
-                ssImg_gamm=ssImg_gamm[sorted_index]            
-                
-                ssImg_omg,ind = doublon(ssImg_omg)
-                ssImg_gamm = ssImg_gamm[ind]
-                
-                ssImg_omg_pos = []
-                ssImg_omg_neg = []
-                ssImg_gamm_pos = []
-                ssImg_gamm_neg = []
-                
-                for m in range(len(ssImg_omg)):
-                    if ssImg_gamm[m] < 0:
-                        ssImg_omg_neg.append(ssImg_omg[m])
-                        ssImg_gamm_neg.append(ssImg_gamm[m])
-                    else:
-                        ssImg_omg_pos.append(ssImg_omg[m])
-                        ssImg_gamm_pos.append(ssImg_gamm[m])
-
     
-                x_neg = np.array(ssImg_omg_neg)
-                y_neg =np.array( ssImg_gamm_neg)
-                
-                x_pos = np.array(ssImg_omg_pos)
-                y_pos =np.array( ssImg_gamm_pos)
+                x_neg,y_neg,x_pos,y_pos=shape_data(ssImg_omg,ssImg_gamm)
                 
                 
                 ######## Relation on the negative range of gamma ########
                 if len(x_neg)!=0:
                     #x_g,y_g=Lisser(x_neg,y_neg,rho)
-                    if i==j:
-                        Afficher_interpolation(x_neg,y_neg,get_equation(x_neg,y_neg,deg)[0](np.linspace(min(x_neg)-0.02,max(x_neg)+0.02,1201)),rho)
+                    # if i==j:
+                    #     Afficher_interpolation(x_neg,y_neg,get_equation(x_neg,y_neg,deg)[0](np.linspace(min(x_neg)-0.02,max(x_neg)+0.02,1201)),rho)
+                    
                     local_relation_neg[oy:oy+dy, ox:ox+dx] = get_equation(x_neg,y_neg,deg)[2]
+                    # if relation[0]<0:
+                    #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (relation)
+                    # else:
+                    #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (get_equation(x_neg,y_neg,deg+1)[2])
+                    local_xrange_neg[oy:oy+dy, ox:ox+dx] = [np.min(x_neg),np.max(x_neg)]
                 
                     if get_equation(x_neg,y_neg,deg)[1]>0.01:
                         print("########## \n On rentre dans un multilook \n##########")
@@ -268,33 +285,21 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                                 dy=int(k/L)
                                 ssImg_omg_2=Img_omg[oy:oy+dy, ox:ox+dx]
                                 ssImg_gamm_2=Img_gamm[oy:oy+dy, ox:ox+dx]
-                                
-                                ssImg_omg_2=ssImg_omg_2.flatten()
-                                ssImg_gamm_2=ssImg_gamm_2.flatten()
-                                
-                                sorted_index=np.argsort(ssImg_omg_2)
-                                ssImg_omg_2= ssImg_omg_2[sorted_index]
-                                ssImg_gamm_2=ssImg_gamm_2[sorted_index]
-                                                        
-                                ssImg_omg_2,ind = doublon(ssImg_omg_2)
-                                ssImg_gamm_2 = ssImg_gamm_2 [ind]
-                                
-                                ssImg_omg_neg_2 = []
-                                ssImg_gamm_neg_2 = []
-                                
-                                for n in range(len(ssImg_omg_2)):
-                                    if ssImg_gamm_2[n] < 0:
-                                        ssImg_omg_neg_2.append(ssImg_omg_2[n])
-                                        ssImg_gamm_neg_2.append(ssImg_gamm_2[n])
                                            
-                                x_neg_2 = np.array(ssImg_omg_neg_2)
-                                y_neg_2 =np.array( ssImg_gamm_neg_2)
+                                x_neg_2,y_neg_2,_,_=shape_data(ssImg_omg_2, ssImg_gamm_2)
     
                                 if len(x_neg_2)!=0:                            
                                     #x_g_2,y_g_2=Lisser(x_neg_2,y_neg_2,rho)
                                     #Afficher_interpolation(x_neg_2,y_neg_2,x_g_2, y_g_2,get_equation(x_g_2,y_g_2,deg)[0](x_g_2),rho)
+                                    
                                     local_relation_neg[oy:oy+dy, ox:ox+dx] = get_equation(x_neg_2,y_neg_2,deg)[2]
-                                
+                                    
+                                    # if relation[0]<0:
+                                    #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (relation)
+                                    # else:
+                                    #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (get_equation(x_neg_2,y_neg_2,deg+1)[2])
+                                    
+                                    local_xrange_neg[oy:oy+dy, ox:ox+dx] = [np.min(x_neg_2),np.max(x_neg_2)]
                                 
                 ##### Moyennage plus grand ########    
                 # n=0
@@ -358,9 +363,16 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                 ######## Relation on the positive range of gamma ########
                 if len(x_pos)!=0:
                     #x_g,y_g=Lisser(x_pos,y_pos,rho)
-                    if i==j:
-                        Afficher_interpolation(x_pos,y_pos,get_equation(x_pos,y_pos,deg)[0](np.linspace(min(x_pos)-0.02,max(x_pos)+0.02,1201)),rho)
+                    # if i==j:
+                    #     Afficher_interpolation(x_pos,y_pos,get_equation(x_pos,y_pos,deg)[0](np.linspace(min(x_pos)-0.02,max(x_pos)+0.02,1201)),rho)
+                    
                     local_relation_pos[oy:oy+dy, ox:ox+dx] = get_equation(x_pos,y_pos,deg)[2]
+                    # if relation[0]>0:
+                    #     local_relation_pos[oy:oy+dy, ox:ox+dx] = (relation)
+                    # else:
+                    #     local_relation_pos[oy:oy+dy, ox:ox+dx]= (get_equation(x_pos,y_pos,deg+1)[2])
+                        
+                    local_xrange_pos[oy:oy+dy, ox:ox+dx] = [np.min(x_pos),np.max(x_pos)]
                     
                     if get_equation(x_pos,y_pos,deg)[1]>0.01:
                         print("########## \n On rentre dans un multilook \n##########")
@@ -379,42 +391,143 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                                 ssImg_omg_2=Img_omg[oy:oy+dy, ox:ox+dx]
                                 ssImg_gamm_2=Img_gamm[oy:oy+dy, ox:ox+dx]
                                 
-                                ssImg_omg_2=ssImg_omg_2.flatten()
-                                ssImg_gamm_2=ssImg_gamm_2.flatten()
-                                
-                                sorted_index=np.argsort(ssImg_omg_2)
-                                ssImg_omg_2= ssImg_omg_2[sorted_index]
-                                ssImg_gamm_2=ssImg_gamm_2[sorted_index]
-                                                        
-                                ssImg_omg_2,ind = doublon(ssImg_omg_2)
-                                ssImg_gamm_2 = ssImg_gamm_2 [ind]
-                                
-                                ssImg_omg_pos_2 = []
-                                ssImg_gamm_pos_2 = []
-                                
-                                for n in range(len(ssImg_omg_2)):
-                                    if ssImg_gamm_2[n] >= 0:
-                                        ssImg_omg_pos_2.append(ssImg_omg_2[n])
-                                        ssImg_gamm_pos_2.append(ssImg_gamm_2[n])
-                                
-                                x_pos_2 = np.array(ssImg_omg_pos_2)
-                                y_pos_2 =np.array( ssImg_gamm_pos_2)
+                                _,_,x_pos_2,y_pos_2=shape_data(ssImg_omg_2,ssImg_gamm_2)
                                     
                                 if len(x_pos_2)!=0:                            
                                     #x_g_2,y_g_2=Lisser(x_pos_2,y_pos_2,rho)
                                     #Afficher_interpolation(x_pos_2,y_pos_2,x_g_2, y_g_2,get_equation(x_g_2,y_g_2,deg)[0](x_g_2),rho)
+                                    
                                     local_relation_pos[oy:oy+dy, ox:ox+dx] = get_equation(x_pos_2,y_pos_2,deg)[2]
+                                    # if relation[0]>0:
+                                    #     local_relation_pos[oy:oy+dy, ox:ox+dx] = (relation)
+                                    # else:
+                                    #     local_relation_pos[oy:oy+dy, ox:ox+dx]= (get_equation(x_pos_2,y_pos_2,deg+1)[2])
+                                        
+                                    local_xrange_pos[oy:oy+dy, ox:ox+dx] = [np.min(x_pos_2),np.max(x_pos_2)]
     
-    return local_relation_neg,local_relation_pos
+    return local_relation_neg,local_relation_pos,local_xrange_neg,local_xrange_pos
 
-Img_omg=np.array(ds.GetRasterBand(5).ReadAsArray(300,725,200,200))
-Img_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(300,725,200,200))
 
-relation_neg,relation_pos=get_local_relation(Img_omg, Img_gamm, rho=30, deg=4)
+def get_spline(x_lidar,x_srtm,relation):
+    x_g_srtm=np.linspace(np.min(x_srtm),np.max(x_srtm),1201)
+    x_g_pos=np.linspace(np.max(x_srtm),np.max(x)+0.01,1201)
+    x_g_neg=np.linspace(np.min(x)-0.01,np.min(x_srtm),1201)
+    
+    pol=np.poly1d(relation)
+    
+    positive_spline=np.concatenate(((pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+pol(x_g_srtm[0]))[:-1],pol(x_g_srtm)[:-1],pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+pol(x_g_srtm[-1])))
+    x_g=np.concatenate((x_g_neg[:-1],x_g_srtm[:-1],x_g_pos))
+    sigma,sigma_prime,sigma_seconde,sigma_tierce=Lisser(x_g,positive_spline,10e5)
+    return x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce
 
-x=Img_omg[40:60,40:60].flatten()
-y=Img_gamm[40:60,40:60].flatten()
-x_g=np.linspace(min(x)-0.01,max(x)+0.01,1201)
-plt.plot(x,y,'o')
-plt.plot(x_g,np.poly1d(relation_neg[50,50])(x_g))
-plt.plot(x_g,np.poly1d(relation_pos[50,50])(x_g))
+
+def evaluate(xeval,xrange,relation):
+    pol=np.poly1d(relation)
+    if xeval<xrange[0]:
+        y=pol.deriv()(xrange[0])*(xeval-xrange[0])+pol(xrange[0])
+    elif xeval>xrange[1]:
+        y=pol.deriv()(xrange[1])*(xeval-xrange[1])+pol(xrange[1])
+    else:
+        y=pol(xeval)
+    return y
+
+
+######################################## MAIN ########################################
+################ Data ################
+Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
+Img_phi_SRTM = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
+Img_gamm_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
+
+plt.subplot(121)
+plt.imshow(Img_omg_SRTM)
+plt.title("SRTM azimuth angle")
+
+
+
+strImgFile = 'D:\Documents\geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+gdal.UseExceptions()
+ds_lidar = gdal.Open(strImgFile)
+
+Img_omg_lidar = np.array(ds_lidar.GetRasterBand(4).ReadAsArray(359,790,200,340))
+Img_phi_lidar = np.array(ds_lidar.GetRasterBand(1).ReadAsArray(359,790,200,340))
+Img_gamm_lidar = np.array(ds_lidar.GetRasterBand(3).ReadAsArray(359,790,200,340))
+
+plt.subplot(122)
+plt.imshow(Img_omg_lidar)
+plt.title("LiDAR azimuth angle")
+plt.show()
+
+################ Relation ################
+
+relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
+
+################ Model Prediction ################
+
+Img_gamm_model=np.zeros(Img_gamm_SRTM.shape)
+for i in range(Img_omg_SRTM.shape[0]):
+    for j in range(Img_omg_SRTM.shape[1]):
+        if Img_gamm_SRTM[i,j]>=0:
+            Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_pos[i,j],relation_pos[i,j])
+        else:
+            Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_neg[i,j],relation_neg[i,j])
+
+
+
+for i in range(10):
+    for j in range(17):
+        x=Img_omg_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+        y=Img_gamm_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+        y_model=Img_gamm_model[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+        
+        if x.size!=0:
+            x_srtm=Img_omg_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+            y_srtm=Img_gamm_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+            
+            # x_g_srtm=np.linspace(np.min(x_srtm),np.max(x_srtm),1201)
+            # x_g_pos=np.linspace(np.max(x_srtm),np.max(x)+0.01,1201)
+            # x_g_neg=np.linspace(np.min(x)-0.01,np.min(x_srtm),1201)
+            
+            plt.figure(figsize=(10,6))
+            plt.plot(x,y,'o',label="LiDAR data")
+            plt.plot(x,y_model,'o',label="prediction from SRTM")
+            plt.plot(x_srtm, y_srtm,'o',label="SRTM data")
+            
+            # positive_pol=np.poly1d(relation_pos[10+20*i,10+20*i])
+            # negative_pol=np.poly1d(relation_neg[10+20*i,10+20*i])
+            
+            # plt.plot(x_g_srtm,positive_pol(x_g_srtm))
+            # plt.plot(x_g_srtm,negative_pol(x_g_srtm))
+            
+            # plt.plot(x_g_pos,positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1]))
+            # plt.plot(x_g_pos,negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1]))
+            # plt.plot(x_g_neg,positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))
+            # plt.plot(x_g_neg,negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))
+            
+            # positive_spline=np.concatenate(((positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))[:-1],positive_pol(x_g_srtm)[:-1],positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1])))
+            # negative_spline=np.concatenate(((negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))[:-1],negative_pol(x_g_srtm)[:-1],negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1])))
+            # x_g=np.concatenate((x_g_neg[:-1],x_g_srtm[:-1],x_g_pos))
+            # x_graphe,positive_spline=Lisser(x_g,positive_spline,10e5)
+            # x_graphe,negative_spline=Lisser(x_g,negative_spline,10e5)
+        
+            # plt.plot(x_graphe,positive_spline)
+            # plt.plot(x_graphe,negative_spline)
+            
+            # x_neg,_,x_pos,_=shape_data(x, y)
+            
+            # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_pos, x_srtm, relation_pos[10+20*i,10+20*i])
+            # model_pos=eval_spline(x_pos,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
+            # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_neg, x_srtm, relation_neg[10+20*i,10+20*i])
+            # model_neg=eval_spline(x_neg,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
+            
+            # plt.plot(x_pos,model_pos,'or')
+            # plt.plot(x_neg,model_neg,'or')
+            # plt.plot(x,x)
+            # plt.plot(x,-x)
+            
+            plt.legend()
+            plt.title("Local relation between the range angle and the azimmuth angle for i=%d and j=%d" %(i,j))
+            plt.xlabel("Azimuth angle")
+            plt.ylabel("Range angle")
+            plt.show()
+
+
