@@ -73,7 +73,7 @@ def Kalman_DTM(z,u,dx,dy):
 
 
 
-def Kalman1D(zSRTM,u,dx,dy ):  
+def Kalman1D(z,u,dx,dy ):  
     # image de taille X*Y
                         
             
@@ -128,7 +128,7 @@ def Kalman1D(zSRTM,u,dx,dy ):
                 A=np.column_stack((A,np.zeros(3)))
                 P[i,j]=(np.eye(3)-A)@P[i,j] 
                 
-                else :
+            else:
                 # step 1
                 x[i,j]=Fx@x[i,j-1] 
                 x[i,j]+=B@u[i,j]
@@ -154,7 +154,7 @@ def Kalman1D(zSRTM,u,dx,dy ):
                 P[i,j]=(np.eye(3)-A)@P[i,j]     
   
           
-    return x            
+    return x[:,:,0]          
             
             
 import integ_normale as integ
@@ -173,54 +173,95 @@ gdal.UseExceptions()
 ds_z = gdal.Open(strImgFile_z) # Data Stack
 ds_z2 = gdal.Open(strImgFile_z2)
 
+
+geotransform = ds.GetGeoTransform()
+geotransform_zLidar = ds2.GetGeoTransform()
+originX = geotransform[0]
+originY = geotransform[3]
+originX_Lidar = geotransform_zLidar[0]
+originY_Lidar = geotransform_zLidar[3]
+pixelWidth = geotransform[1]
+pixelHeight = geotransform[5]
+xOffset=int((originX_Lidar-originX)/pixelWidth)
+yOffset=int((originY_Lidar-originY)/pixelHeight)
+
+
 xp = 80
 yp = 80
 #########################           SRTM
 ox_srtm = 350
 oy_srtm = 750
-ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+azimuth_SRTM=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+range_SRTM=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+phi_SRTM=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+z_SRTM=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
                     
 
 ########################            LiDAR     
-ssImg_omg_lidar=np.array(ds2.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-#ssImg_gamm_lidar=np.array(ds2.GetRasterBand(3).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_phi_lidar=np.array(ds2.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_z_lidar=np.array(ds_z2.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+azimuth_lidar=np.array(ds2.GetRasterBand(4).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+#range_lidar=np.array(ds2.GetRasterBand(3).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+phi_lidar=np.array(ds2.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+
+
+geotransform = ds.GetGeoTransform()
+geotransform_zLidar = ds_z2.GetGeoTransform()
+originX = geotransform[0]
+originY = geotransform[3]
+originX_Lidar = geotransform_zLidar[0]
+originY_Lidar = geotransform_zLidar[3]
+pixelWidth = geotransform[1]
+pixelHeight = geotransform[5]
+xOffset=int((originX_Lidar-originX)/pixelWidth)
+yOffset=int((originY_Lidar-originY)/pixelHeight)
+
+z_lidar=np.array(ds_z2.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
 
                
-n1, n2, n3 = integ.get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
-z = integ.get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
+n1, n2, n3 = integ.get_normal(azimuth_SRTM, range_SRTM, phi_SRTM)
+z = integ.get_z(n1, n2, n3, z_SRTM[0,0], xp, yp)
 
-relation_neg,relation_pos,omg_range_neg,omg_range_pos=mlk.get_local_relation(ssImg_omg, ssImg_gamm, rho=30, deg=2)
-ssImg_gamm_lidar_pred = mlk.predict(ssImg_gamm,ssImg_omg,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+range_lidar_pred=mlk.get_range_prediction(azimuth_SRTM,range_SRTM,2)
+# relation_neg,relation_pos,omg_range_neg,omg_range_pos=mlk.get_local_relation(azimuth_SRTM, range_SRTM, rho=30, deg=2)
+# range_lidar_pred = mlk.predict(range_SRTM,azimuth_SRTM,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
 
-n1_pred, n2_pred, n3_pred = integ.get_normal(ssImg_omg_lidar,ssImg_gamm_lidar_pred,ssImg_phi_lidar)
+n1_pred, n2_pred, n3_pred = integ.get_normal(azimuth_lidar,range_lidar_pred,phi_lidar)
 
 grad_pred = np.zeros((n1_pred.shape[0],n1_pred.shape[1],2))
 grad_pred[:,:,0] = -n1_pred/n3_pred
 grad_pred[:,:,1] = -n2_pred/n3_pred
 
-z_kalman = Kalman_DTM(ssImg_z,grad_pred,10,10)
+
+pixelWidth = geotransform[1]
+pixelHeight = geotransform[5]
+z_kalman = Kalman_DTM(z_SRTM,grad_pred,pixelWidth,pixelHeight)
 
 
-
-xx, yy = np.meshgrid(range(xp), range(yp))
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z)
-plt.title("z_SRTM")
-plt.show()             
-        
-xx, yy = np.meshgrid(range(xp), range(yp))
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, z_kalman)
-plt.title("z_kalman")
+############### Affichage Z SRTM ###############
+# xx, yy = np.meshgrid(range(xp), range(yp))
+# plt3d = plt.figure().gca(projection='3d')
+# plt3d.plot_surface(xx, yy, z_SRTM)
+# plt.title("z_SRTM")
+# plt.show()   
+plt.imshow(z_SRTM)
+plt.title("Z SRTM")
+plt.show()         
+     
+############### Affichage Z Kalman ###############   
+# xx, yy = np.meshgrid(range(xp), range(yp))
+# plt3d = plt.figure().gca(projection='3d')
+# plt3d.plot_surface(xx, yy, z_kalman)
+# plt.title("z_kalman")
+# plt.show()
+plt.imshow(z_kalman)
+plt.title("Z Kalman")
 plt.show()
           
-xx, yy = np.meshgrid(range(xp), range(yp))
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z_lidar)
-plt.title("z_lidar")
-plt.show()       
+############### Affichage Z LiDAR ###############
+# xx, yy = np.meshgrid(range(xp), range(yp))
+# plt3d = plt.figure().gca(projection='3d')
+# plt3d.plot_surface(xx, yy, z_lidar)
+# plt.title("z_lidar")
+# plt.show()    
+plt.imshow(z_lidar)
+plt.title("Z LiDAR")
+plt.show()   

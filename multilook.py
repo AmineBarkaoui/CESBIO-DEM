@@ -225,10 +225,10 @@ def shape_data(ssImg_omg,ssImg_gamm):
 
 # =============================================================================
 
-def get_local_relation(Img_omg,Img_gamm,rho,deg):
+def get_local_relation(Img_omg,Img_gamm,deg):
     k=20                        #taille de la sous image
-    I=floor(Img_omg.shape[1]/k) #nb de découpage sur les y
-    J=floor(Img_omg.shape[0]/k) # nb de découpage sur les x
+    I=floor(Img_omg.shape[0]/k) #nb de découpage sur les y
+    J=floor(Img_omg.shape[1]/k) # nb de découpage sur les x
     local_relation_neg=np.zeros((Img_omg.shape[0],Img_omg.shape[1],deg+1))
     local_relation_pos=np.zeros((Img_omg.shape[0],Img_omg.shape[1],deg+1))
     local_xrange_neg=np.zeros((Img_omg.shape[0],Img_omg.shape[1],2))
@@ -435,8 +435,10 @@ def predict(Img_gamm_SRTM,Img_omg_SAR,relation_neg,relation_pos,omg_range_neg,om
 
 
 
-
-
+def get_range_prediction(Img_omg,Img_gamm,deg):
+    relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg,Img_gamm, deg=2)
+    range_pred = predict(Img_gamm,Img_omg,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+    return range_pred
 
 
 
@@ -530,5 +532,48 @@ def predict(Img_gamm_SRTM,Img_omg_SAR,relation_neg,relation_pos,omg_range_neg,om
 #             plt.xlabel("Azimuth angle")
 #             plt.ylabel("Range angle")
 #             plt.show()
+
+
+
+################### range angle model/lidar comparison ###################
+# strImgFile = 'D:\Documents\geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+# gdal.UseExceptions()
+# ds = gdal.Open(strImgFile) # Data Stack
+
+# ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
+# range_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
+# azimuth_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
+
+# strImgFileLidar = 'D:\Documents\geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+# dsLidar = gdal.Open(strImgFileLidar) # Data Stack
+
+# geotransform = ds.GetGeoTransform()
+# geotransform_zLidar = dsLidar.GetGeoTransform()
+# originX = geotransform[0]
+# originY = geotransform[3]
+# originX_Lidar = geotransform_zLidar[0]
+# originY_Lidar = geotransform_zLidar[3]
+# pixelWidth = geotransform[1]
+# pixelHeight = geotransform[5]
+# xOffset=int((originX_Lidar-originX)/pixelWidth)
+# yOffset=int((originY_Lidar-originY)/pixelHeight)
+
+# print(xOffset,yOffset)
+
+# range_Lidar = np.array(dsLidar.GetRasterBand(3).ReadAsArray(359-xOffset,790-yOffset,200,340))
+# azimuth_Lidar = np.array(dsLidar.GetRasterBand(4).ReadAsArray(359-xOffset,790-yOffset,200,340))
+
+
+# relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(azimuth_SRTM, range_SRTM, rho=30, deg=2)
+# range_model=predict(range_SRTM,azimuth_Lidar,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+
+
+# plt.imshow(range_model)
+# plt.title("range angle from the multilook")
+# plt.show()
+
+# plt.imshow(range_Lidar)
+# plt.title("LiDAR range angle")
+# plt.show()
 
 
