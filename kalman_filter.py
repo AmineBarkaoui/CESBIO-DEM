@@ -22,7 +22,7 @@ def Kalman_DTM(z,u,dx,dy):
     Fx=np.array([[1/3,-dx/2,0],[0,1/3,0],[0,0,1/3]])
     Fy=F=np.array([[1/3,0,-dy/2],[0,1/3,0],[0,0,1/3]])
     
-    L=10 #nombre grand car P00 inconnu to be set
+    L=1000 #nombre grand car P00 inconnu to be set
     P=np.zeros(z.shape[0],z.shape[1],3,3)
     P[0,:]=np.array([[L,0,0],[0,L,0],[0,0,L]])
     P[:,0]=np.array([[L,0,0],[0,L,0],[0,0,L]])
@@ -36,8 +36,8 @@ def Kalman_DTM(z,u,dx,dy):
     # x[:,0,1]=model_bias[:,0,0]
     # x[0,:,2]=model_bias[0,:,1]
     # x[:,0,2]=model_bias[:,0,1]
-    Q=np.array([[0.001,0,0],[0,0.003,0],[0,0,0.003]]) # to be set
-    R=0.03
+    Q=np.array([[5,0,0],[0,0.17,0],[0,0,0.17]]) # to be set
+    R=5
     
     for i in range(1,z.shape[0]):
         for j in range(1,z.shape[1]):

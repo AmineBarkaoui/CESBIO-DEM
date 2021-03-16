@@ -7,15 +7,7 @@ import matplotlib.pyplot as plt
 import scipy.fftpack
 from math import *
 
-#import numpy.fft as fft
-#import numpy.linalg as npl
-#from scipy import fftpack
-#from scipy import signal
-#import scipy.signal as ss
-#from scipy.signal import convolve
-#import csv
-#}}}
-#
+
 
 # strImgFile = 'D:\Documents\geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
 # gdal.UseExceptions()
@@ -29,7 +21,6 @@ from math import *
 # ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
 
 # ds_band = np.array(ds.GetRasterBand(3).ReadAsArray(300,725,200,200)) #ox,oy,dx,dy
-# #plt.figure(figsize=(20,30))
 # plt.imshow( ds_band*30.0)
 # plt.show()
 
@@ -269,7 +260,7 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                     #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (get_equation(x_neg,y_neg,deg+1)[2])
                     local_xrange_neg[oy:oy+dy, ox:ox+dx] = [np.min(x_neg),np.max(x_neg)]
                 
-                    if get_equation(x_neg,y_neg,deg)[1]>0.05:
+                    if get_equation(x_neg,y_neg,deg)[1]>0.01:
                         print("########## \n On rentre dans un multilook \n##########")
                         
                         ####### Découpage en 4 sous images avec une mauvaise relation #######
@@ -374,7 +365,7 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                         
                     local_xrange_pos[oy:oy+dy, ox:ox+dx] = [np.min(x_pos),np.max(x_pos)]
                     
-                    if get_equation(x_pos,y_pos,deg)[1]>0.05:
+                    if get_equation(x_pos,y_pos,deg)[1]>0.01:
                         print("########## \n On rentre dans un multilook \n##########")
                         
                         ####### Découpage en 4 sous images avec une mauvaise relation #######
@@ -432,6 +423,23 @@ def evaluate(xeval,xrange,relation):
     return y
 
 
+def predict(Img_gamm_SRTM,Img_omg_SAR,relation_neg,relation_pos,omg_range_neg,omg_range_pos):
+    Img_gamm_model=np.zeros(Img_gamm_SRTM.shape)
+    for i in range(Img_gamm_SRTM.shape[0]):
+        for j in range(Img_gamm_SRTM.shape[1]):
+            if Img_gamm_SRTM[i,j]>=0:
+                Img_gamm_model[i,j]=evaluate(Img_omg_SAR[i,j],omg_range_pos[i,j],relation_pos[i,j])
+            else:
+                Img_gamm_model[i,j]=evaluate(Img_omg_SAR[i,j],omg_range_neg[i,j],relation_neg[i,j])
+    return Img_gamm_model
+
+
+
+
+
+
+
+
 ######################################## MAIN ########################################
 ################ Data ################
 # Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
@@ -457,20 +465,13 @@ def evaluate(xeval,xrange,relation):
 # plt.title("LiDAR azimuth angle")
 # plt.show()
 
-# ################ Relation ################
+################ Relation ################
 
-# relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
+#relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
 
-# ################ Model Prediction ################
+################ Model Prediction ################
 
-# Img_gamm_model=np.zeros(Img_gamm_SRTM.shape)
-# for i in range(Img_omg_SRTM.shape[0]):
-#     for j in range(Img_omg_SRTM.shape[1]):
-#         if Img_gamm_SRTM[i,j]>=0:
-#             Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_pos[i,j],relation_pos[i,j])
-#         else:
-#             Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_neg[i,j],relation_neg[i,j])
-
+#Img_gamm_model=predict(Img_gamm_SRTM,Img_omg_lidar,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
 
 
 # for i in range(10):
