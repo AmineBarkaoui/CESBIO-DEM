@@ -157,4 +157,70 @@ def Kalman1D(zSRTM,u,dx,dy ):
   return xk,Pk # a modif            
             
             
-            
+import integ_normale as integ
+import multilook as mlk
+from mpl_toolkits.mplot3d import Axes3D 
+
+strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+strImgFile2 = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+gdal.UseExceptions()
+ds = gdal.Open(strImgFile) # Data Stack
+ds2 = gdal.Open(strImgFile2)
+
+strImgFile_z = './Data/SRTM30m/geo10Md2zSRTM.tif'
+strImgFile_z2 = './Data/LiDAR/geo10mLiGLTd3LiDTM-CHM-AGB.tif'
+gdal.UseExceptions()
+ds_z = gdal.Open(strImgFile_z) # Data Stack
+ds_z2 = gdal.Open(strImgFile_z2)
+
+xp = 80
+yp = 80
+#########################           SRTM
+ox_srtm = 350
+oy_srtm = 750
+ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+                    
+
+########################            LiDAR     
+ssImg_omg_lidar=np.array(ds2.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+#ssImg_gamm_lidar=np.array(ds2.GetRasterBand(3).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_phi_lidar=np.array(ds2.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_z_lidar=np.array(ds_z2.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+
+               
+n1, n2, n3 = integ.get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
+z = integ.get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
+
+relation_neg,relation_pos,omg_range_neg,omg_range_pos=mlk.get_local_relation(ssImg_omg, ssImg_gamm, rho=30, deg=2)
+ssImg_gamm_lidar_pred = mlk.predict(ssImg_gamm,ssImg_omg,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+
+n1_pred, n2_pred, n3_pred = integ.get_normal(ssImg_omg_lidar,ssImg_gamm_lidar_pred,ssImg_phi_lidar)
+
+grad_pred = np.zeros((n1_pred.shape[0],n1_pred.shape[1],2))
+grad_pred[:,:,0] = -n1_pred/n3_pred
+grad_pred[:,:,1] = -n2_pred/n3_pred
+
+z_kalman = Kalman_DTM(ssImg_z,grad_pred,10,10)
+
+
+
+xx, yy = np.meshgrid(range(xp), range(yp))
+plt3d = plt.figure().gca(projection='3d')
+plt3d.plot_surface(xx, yy, ssImg_z)
+plt.title("z_SRTM")
+plt.show()             
+        
+xx, yy = np.meshgrid(range(xp), range(yp))
+plt3d = plt.figure().gca(projection='3d')
+plt3d.plot_surface(xx, yy, z_kalman)
+plt.title("z_kalman")
+plt.show()
+          
+xx, yy = np.meshgrid(range(xp), range(yp))
+plt3d = plt.figure().gca(projection='3d')
+plt3d.plot_surface(xx, yy, ssImg_z_lidar)
+plt.title("z_lidar")
+plt.show()       

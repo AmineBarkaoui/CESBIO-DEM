@@ -11,28 +11,28 @@ import scipy.integrate as spi
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D 
 
-strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
-#strImgFile = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
-gdal.UseExceptions()
-ds = gdal.Open(strImgFile) # Data Stack
+# strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+# #strImgFile = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+# gdal.UseExceptions()
+# ds = gdal.Open(strImgFile) # Data Stack
 
-strImgFile_z = './Data/SRTM30m/geo10Md2zSRTM.tif'
-#strImgFile_z = './Data/LiDAR/geo10mLiGLTd3LiDTM-CHM-AGB.tif'
-gdal.UseExceptions()
-ds_z = gdal.Open(strImgFile_z) # Data Stack
+# strImgFile_z = './Data/SRTM30m/geo10Md2zSRTM.tif'
+# #strImgFile_z = './Data/LiDAR/geo10mLiGLTd3LiDTM-CHM-AGB.tif'
+# gdal.UseExceptions()
+# ds_z = gdal.Open(strImgFile_z) # Data Stack
 
-I=10 #nb de découpage sur les x
-J=10 # nb de découpage sur les y
+# I=10 #nb de découpage sur les x
+# J=10 # nb de découpage sur les y
 
-xp = 20
-yp = 20
-#########################           SRTM
-ox_srtm = 342
-oy_srtm = 759
-ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+# xp = 20
+# yp = 20
+# #########################           SRTM
+# ox_srtm = 342
+# oy_srtm = 759
+# ssImg_omg=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+# ssImg_gamm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+# ssImg_phi=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+# ssImg_z=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
 
 
 ########################            LiDAR
@@ -112,16 +112,16 @@ def get_z(n1,n2,n3,xp,yp,init,GCP=None):
     return z
 
 
-n1, n2, n3 = get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
-z = get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
+# n1, n2, n3 = get_normal(ssImg_omg, ssImg_gamm, ssImg_phi)
+# z = get_z(n1, n2, n3, ssImg_z[0,0], xp, yp)
 
-xx, yy = np.meshgrid(range(xp), range(yp))
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, z)
-plt.title("Test")
-plt.show()
+# xx, yy = np.meshgrid(range(xp), range(yp))
+# plt3d = plt.figure().gca(projection='3d')
+# plt3d.plot_surface(xx, yy, z)
+# plt.title("Test")
+# plt.show()
 
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z)
-plt.title("Check with z_SRTM")
-plt.show()
+# plt3d = plt.figure().gca(projection='3d')
+# plt3d.plot_surface(xx, yy, ssImg_z)
+# plt.title("Check with z_SRTM")
+# plt.show()

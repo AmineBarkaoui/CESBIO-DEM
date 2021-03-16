@@ -17,21 +17,21 @@ from math import *
 #}}}
 #
 
-strImgFile = 'D:\Documents\geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
-gdal.UseExceptions()
-ds = gdal.Open(strImgFile) # Data Stack
+# strImgFile = 'D:\Documents\geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+# gdal.UseExceptions()
+# ds = gdal.Open(strImgFile) # Data Stack
 
-ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray())
-ds_band2 = np.array(ds.GetRasterBand(2).ReadAsArray())
-ds_band3 = np.array(ds.GetRasterBand(3).ReadAsArray())
-ds_band4 = np.array(ds.GetRasterBand(4).ReadAsArray())
-ds_band5 = np.array(ds.GetRasterBand(5).ReadAsArray())
-ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
+# ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray())
+# ds_band2 = np.array(ds.GetRasterBand(2).ReadAsArray())
+# ds_band3 = np.array(ds.GetRasterBand(3).ReadAsArray())
+# ds_band4 = np.array(ds.GetRasterBand(4).ReadAsArray())
+# ds_band5 = np.array(ds.GetRasterBand(5).ReadAsArray())
+# ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
 
-ds_band = np.array(ds.GetRasterBand(3).ReadAsArray(300,725,200,200)) #ox,oy,dx,dy
-#plt.figure(figsize=(20,30))
-plt.imshow( ds_band*30.0)
-plt.show()
+# ds_band = np.array(ds.GetRasterBand(3).ReadAsArray(300,725,200,200)) #ox,oy,dx,dy
+# #plt.figure(figsize=(20,30))
+# plt.imshow( ds_band*30.0)
+# plt.show()
 
 
 
@@ -269,7 +269,7 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                     #     local_relation_neg[oy:oy+dy, ox:ox+dx] = (get_equation(x_neg,y_neg,deg+1)[2])
                     local_xrange_neg[oy:oy+dy, ox:ox+dx] = [np.min(x_neg),np.max(x_neg)]
                 
-                    if get_equation(x_neg,y_neg,deg)[1]>0.01:
+                    if get_equation(x_neg,y_neg,deg)[1]>0.05:
                         print("########## \n On rentre dans un multilook \n##########")
                         
                         ####### Découpage en 4 sous images avec une mauvaise relation #######
@@ -374,7 +374,7 @@ def get_local_relation(Img_omg,Img_gamm,rho,deg):
                         
                     local_xrange_pos[oy:oy+dy, ox:ox+dx] = [np.min(x_pos),np.max(x_pos)]
                     
-                    if get_equation(x_pos,y_pos,deg)[1]>0.01:
+                    if get_equation(x_pos,y_pos,deg)[1]>0.05:
                         print("########## \n On rentre dans un multilook \n##########")
                         
                         ####### Découpage en 4 sous images avec une mauvaise relation #######
@@ -434,100 +434,100 @@ def evaluate(xeval,xrange,relation):
 
 ######################################## MAIN ########################################
 ################ Data ################
-Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
-Img_phi_SRTM = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
-Img_gamm_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
+# Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
+# Img_phi_SRTM = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
+# Img_gamm_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
 
-plt.subplot(121)
-plt.imshow(Img_omg_SRTM)
-plt.title("SRTM azimuth angle")
-
-
-
-strImgFile = 'D:\Documents\geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
-gdal.UseExceptions()
-ds_lidar = gdal.Open(strImgFile)
-
-Img_omg_lidar = np.array(ds_lidar.GetRasterBand(4).ReadAsArray(359,790,200,340))
-Img_phi_lidar = np.array(ds_lidar.GetRasterBand(1).ReadAsArray(359,790,200,340))
-Img_gamm_lidar = np.array(ds_lidar.GetRasterBand(3).ReadAsArray(359,790,200,340))
-
-plt.subplot(122)
-plt.imshow(Img_omg_lidar)
-plt.title("LiDAR azimuth angle")
-plt.show()
-
-################ Relation ################
-
-relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
-
-################ Model Prediction ################
-
-Img_gamm_model=np.zeros(Img_gamm_SRTM.shape)
-for i in range(Img_omg_SRTM.shape[0]):
-    for j in range(Img_omg_SRTM.shape[1]):
-        if Img_gamm_SRTM[i,j]>=0:
-            Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_pos[i,j],relation_pos[i,j])
-        else:
-            Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_neg[i,j],relation_neg[i,j])
+# plt.subplot(121)
+# plt.imshow(Img_omg_SRTM)
+# plt.title("SRTM azimuth angle")
 
 
 
-for i in range(10):
-    for j in range(17):
-        x=Img_omg_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
-        y=Img_gamm_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
-        y_model=Img_gamm_model[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+# strImgFile = 'D:\Documents\geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+# gdal.UseExceptions()
+# ds_lidar = gdal.Open(strImgFile)
+
+# Img_omg_lidar = np.array(ds_lidar.GetRasterBand(4).ReadAsArray(359,790,200,340))
+# Img_phi_lidar = np.array(ds_lidar.GetRasterBand(1).ReadAsArray(359,790,200,340))
+# Img_gamm_lidar = np.array(ds_lidar.GetRasterBand(3).ReadAsArray(359,790,200,340))
+
+# plt.subplot(122)
+# plt.imshow(Img_omg_lidar)
+# plt.title("LiDAR azimuth angle")
+# plt.show()
+
+# ################ Relation ################
+
+# relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
+
+# ################ Model Prediction ################
+
+# Img_gamm_model=np.zeros(Img_gamm_SRTM.shape)
+# for i in range(Img_omg_SRTM.shape[0]):
+#     for j in range(Img_omg_SRTM.shape[1]):
+#         if Img_gamm_SRTM[i,j]>=0:
+#             Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_pos[i,j],relation_pos[i,j])
+#         else:
+#             Img_gamm_model[i,j]=evaluate(Img_omg_lidar[i,j],omg_range_neg[i,j],relation_neg[i,j])
+
+
+
+# for i in range(10):
+#     for j in range(17):
+#         x=Img_omg_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+#         y=Img_gamm_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+#         y_model=Img_gamm_model[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
         
-        if x.size!=0:
-            x_srtm=Img_omg_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
-            y_srtm=Img_gamm_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+#         if x.size!=0:
+#             x_srtm=Img_omg_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
+#             y_srtm=Img_gamm_SRTM[0+20*i:20+20*i,0+20*j:20+20*j].flatten()
             
-            # x_g_srtm=np.linspace(np.min(x_srtm),np.max(x_srtm),1201)
-            # x_g_pos=np.linspace(np.max(x_srtm),np.max(x)+0.01,1201)
-            # x_g_neg=np.linspace(np.min(x)-0.01,np.min(x_srtm),1201)
+#             # x_g_srtm=np.linspace(np.min(x_srtm),np.max(x_srtm),1201)
+#             # x_g_pos=np.linspace(np.max(x_srtm),np.max(x)+0.01,1201)
+#             # x_g_neg=np.linspace(np.min(x)-0.01,np.min(x_srtm),1201)
             
-            plt.figure(figsize=(10,6))
-            plt.plot(x,y,'o',label="LiDAR data")
-            plt.plot(x,y_model,'o',label="prediction from SRTM")
-            plt.plot(x_srtm, y_srtm,'o',label="SRTM data")
+#             plt.figure(figsize=(10,6))
+#             plt.plot(x,y,'o',label="LiDAR data")
+#             plt.plot(x,y_model,'o',label="prediction from SRTM")
+#             plt.plot(x_srtm, y_srtm,'o',label="SRTM data")
             
-            # positive_pol=np.poly1d(relation_pos[10+20*i,10+20*i])
-            # negative_pol=np.poly1d(relation_neg[10+20*i,10+20*i])
+#             # positive_pol=np.poly1d(relation_pos[10+20*i,10+20*i])
+#             # negative_pol=np.poly1d(relation_neg[10+20*i,10+20*i])
             
-            # plt.plot(x_g_srtm,positive_pol(x_g_srtm))
-            # plt.plot(x_g_srtm,negative_pol(x_g_srtm))
+#             # plt.plot(x_g_srtm,positive_pol(x_g_srtm))
+#             # plt.plot(x_g_srtm,negative_pol(x_g_srtm))
             
-            # plt.plot(x_g_pos,positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1]))
-            # plt.plot(x_g_pos,negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1]))
-            # plt.plot(x_g_neg,positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))
-            # plt.plot(x_g_neg,negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))
+#             # plt.plot(x_g_pos,positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1]))
+#             # plt.plot(x_g_pos,negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1]))
+#             # plt.plot(x_g_neg,positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))
+#             # plt.plot(x_g_neg,negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))
             
-            # positive_spline=np.concatenate(((positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))[:-1],positive_pol(x_g_srtm)[:-1],positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1])))
-            # negative_spline=np.concatenate(((negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))[:-1],negative_pol(x_g_srtm)[:-1],negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1])))
-            # x_g=np.concatenate((x_g_neg[:-1],x_g_srtm[:-1],x_g_pos))
-            # x_graphe,positive_spline=Lisser(x_g,positive_spline,10e5)
-            # x_graphe,negative_spline=Lisser(x_g,negative_spline,10e5)
+#             # positive_spline=np.concatenate(((positive_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+positive_pol(x_g_srtm[0]))[:-1],positive_pol(x_g_srtm)[:-1],positive_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+positive_pol(x_g_srtm[-1])))
+#             # negative_spline=np.concatenate(((negative_pol.deriv()(x_g_srtm[0])*(x_g_neg-x_g_srtm[0])+negative_pol(x_g_srtm[0]))[:-1],negative_pol(x_g_srtm)[:-1],negative_pol.deriv()(x_g_srtm[-1])*(x_g_pos-x_g_srtm[-1])+negative_pol(x_g_srtm[-1])))
+#             # x_g=np.concatenate((x_g_neg[:-1],x_g_srtm[:-1],x_g_pos))
+#             # x_graphe,positive_spline=Lisser(x_g,positive_spline,10e5)
+#             # x_graphe,negative_spline=Lisser(x_g,negative_spline,10e5)
         
-            # plt.plot(x_graphe,positive_spline)
-            # plt.plot(x_graphe,negative_spline)
+#             # plt.plot(x_graphe,positive_spline)
+#             # plt.plot(x_graphe,negative_spline)
             
-            # x_neg,_,x_pos,_=shape_data(x, y)
+#             # x_neg,_,x_pos,_=shape_data(x, y)
             
-            # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_pos, x_srtm, relation_pos[10+20*i,10+20*i])
-            # model_pos=eval_spline(x_pos,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
-            # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_neg, x_srtm, relation_neg[10+20*i,10+20*i])
-            # model_neg=eval_spline(x_neg,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
+#             # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_pos, x_srtm, relation_pos[10+20*i,10+20*i])
+#             # model_pos=eval_spline(x_pos,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
+#             # x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce=get_spline(x_neg, x_srtm, relation_neg[10+20*i,10+20*i])
+#             # model_neg=eval_spline(x_neg,x_g,sigma,sigma_prime,sigma_seconde,sigma_tierce)
             
-            # plt.plot(x_pos,model_pos,'or')
-            # plt.plot(x_neg,model_neg,'or')
-            # plt.plot(x,x)
-            # plt.plot(x,-x)
+#             # plt.plot(x_pos,model_pos,'or')
+#             # plt.plot(x_neg,model_neg,'or')
+#             # plt.plot(x,x)
+#             # plt.plot(x,-x)
             
-            plt.legend()
-            plt.title("Local relation between the range angle and the azimmuth angle for i=%d and j=%d" %(i,j))
-            plt.xlabel("Azimuth angle")
-            plt.ylabel("Range angle")
-            plt.show()
+#             plt.legend()
+#             plt.title("Local relation between the range angle and the azimmuth angle for i=%d and j=%d" %(i,j))
+#             plt.xlabel("Azimuth angle")
+#             plt.ylabel("Range angle")
+#             plt.show()
 
 
