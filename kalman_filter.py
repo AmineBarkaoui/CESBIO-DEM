@@ -200,7 +200,7 @@ z_SRTM=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
 ########################            LiDAR     
 azimuth_lidar=np.array(ds2.GetRasterBand(4).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
 #range_lidar=np.array(ds2.GetRasterBand(3).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
-phi_lidar=np.array(ds2.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+phi_lidar=np.array(ds2.GetRasterBand(2).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
 
 
 geotransform = ds.GetGeoTransform()

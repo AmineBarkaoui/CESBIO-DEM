@@ -435,9 +435,9 @@ def predict(Img_gamm_SRTM,Img_omg_SAR,relation_neg,relation_pos,omg_range_neg,om
 
 
 
-def get_range_prediction(Img_omg,Img_gamm,deg):
+def get_range_prediction(Img_omg,Img_gamm,Img_omg_SAR,deg):
     relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg,Img_gamm, deg=2)
-    range_pred = predict(Img_gamm,Img_omg,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+    range_pred = predict(Img_gamm,Img_omg_SAR,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
     return range_pred
 
 
