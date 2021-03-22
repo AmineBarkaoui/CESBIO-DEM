@@ -79,9 +79,9 @@ def get_z(n1,n2,n3,xp,yp,init,GCP=None):
 #    t2 = -n2/n3
     z = np.zeros(n1.shape)
     z[0,0] = init
-    found = 0
-    pos = 0
-    delta = 0
+#    found = 0
+#    pos = 0
+#    delta = 0
     for i in range(m):
         for j in range(n): 
             if j != 0:
