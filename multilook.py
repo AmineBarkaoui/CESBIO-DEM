@@ -9,20 +9,19 @@ from math import *
 
 
 
-# strImgFile = 'D:\Documents\geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
-# gdal.UseExceptions()
-# ds = gdal.Open(strImgFile) # Data Stack
-
-# ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray())
-# ds_band2 = np.array(ds.GetRasterBand(2).ReadAsArray())
-# ds_band3 = np.array(ds.GetRasterBand(3).ReadAsArray())
-# ds_band4 = np.array(ds.GetRasterBand(4).ReadAsArray())
-# ds_band5 = np.array(ds.GetRasterBand(5).ReadAsArray())
-# ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
-
-# ds_band = np.array(ds.GetRasterBand(3).ReadAsArray(300,725,200,200)) #ox,oy,dx,dy
-# plt.imshow( ds_band*30.0)
-# plt.show()
+#strImgFile = './Data/SRTM30m/geo10Md3thtT-thtI-psiN-Nrg-Naz-NazEH.tif'
+#gdal.UseExceptions()
+#ds = gdal.Open(strImgFile) # Data Stack
+#ds_band1 = np.array(ds.GetRasterBand(1).ReadAsArray())
+#ds_band2 = np.array(ds.GetRasterBand(2).ReadAsArray())
+#ds_band3 = np.array(ds.GetRasterBand(3).ReadAsArray())
+#ds_band4 = np.array(ds.GetRasterBand(4).ReadAsArray())
+#ds_band5 = np.array(ds.GetRasterBand(5).ReadAsArray())
+#ds_band6 = np.array(ds.GetRasterBand(6).ReadAsArray())
+#
+#ds_band = np.array(ds.GetRasterBand(3).ReadAsArray(300,725,200,200)) #ox,oy,dx,dy
+#plt.imshow( ds_band*30.0)
+#plt.show()
 
 
 
@@ -444,38 +443,49 @@ def get_range_prediction(Img_omg,Img_gamm,Img_omg_SAR,deg):
 
 ######################################## MAIN ########################################
 ################ Data ################
-# Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
-# Img_phi_SRTM = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
-# Img_gamm_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
-
-# plt.subplot(121)
-# plt.imshow(Img_omg_SRTM)
-# plt.title("SRTM azimuth angle")
-
-
-
-# strImgFile = 'D:\Documents\geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
-# gdal.UseExceptions()
-# ds_lidar = gdal.Open(strImgFile)
-
-# Img_omg_lidar = np.array(ds_lidar.GetRasterBand(4).ReadAsArray(359,790,200,340))
-# Img_phi_lidar = np.array(ds_lidar.GetRasterBand(1).ReadAsArray(359,790,200,340))
-# Img_gamm_lidar = np.array(ds_lidar.GetRasterBand(3).ReadAsArray(359,790,200,340))
-
-# plt.subplot(122)
-# plt.imshow(Img_omg_lidar)
-# plt.title("LiDAR azimuth angle")
-# plt.show()
+#Img_omg_SRTM = np.array(ds.GetRasterBand(5).ReadAsArray(359,790,200,340))
+#Img_phi_SRTM = np.array(ds.GetRasterBand(1).ReadAsArray(359,790,200,340))
+#Img_gamm_SRTM = np.array(ds.GetRasterBand(4).ReadAsArray(359,790,200,340))
+#
+#plt.subplot(121)
+#plt.imshow(Img_omg_SRTM)
+#plt.title("SRTM azimuth angle")
+#
+#
+#
+#strImgFile = './Data/LiDAR/geo10Md3psi_v-psiN-Nrg-Naz-NazEH.tif'
+#gdal.UseExceptions()
+#ds_lidar = gdal.Open(strImgFile)
+#
+#Img_omg_lidar = np.array(ds_lidar.GetRasterBand(4).ReadAsArray(359,790,200,340))
+#Img_phi_lidar = np.array(ds_lidar.GetRasterBand(1).ReadAsArray(359,790,200,340))
+#Img_gamm_lidar = np.array(ds_lidar.GetRasterBand(3).ReadAsArray(359,790,200,340))
+#
+#plt.subplot(122)
+#plt.imshow(Img_omg_lidar)
+#plt.title("LiDAR azimuth angle")
+#plt.show()
 
 ################ Relation ################
 
-#relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, rho=30, deg=2)
+#relation_neg,relation_pos,omg_range_neg,omg_range_pos=get_local_relation(Img_omg_SRTM, Img_gamm_SRTM, deg=2)
 
 ################ Model Prediction ################
 
 #Img_gamm_model=predict(Img_gamm_SRTM,Img_omg_lidar,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
-
-
+#
+#Img_gamm_model=predict(Img_gamm_SRTM,Img_omg_lidar,relation_neg,relation_pos,omg_range_neg,omg_range_pos)
+#plt.subplot(121)
+#plt.imshow(Img_gamm_lidar)
+#plt.title("LiDAR range angle")
+#
+#
+#plt.subplot(122)
+#plt.imshow(Img_omg_lidar)
+#plt.title("model range angle")
+#
+#plt.colorbar()
+#plt.show()
 # for i in range(10):
 #     for j in range(17):
 #         x=Img_omg_lidar[0+20*i:20+20*i,0+20*j:20+20*j].flatten()

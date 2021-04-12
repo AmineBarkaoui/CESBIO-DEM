@@ -11,6 +11,7 @@ import numpy as np
 #import scipy.sparse as sp
 #import scipy.sparse.linalg as spl
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 #import scipy.fftpack
 #from math import *
 
@@ -48,21 +49,22 @@ oy_zlidar = geotransform_zLidar[3]
 xOffset_z=int((ox_zlidar-oX_srtm)/pixelWidth)
 yOffset_z=int((oy_zlidar-oY_srtm)/pixelHeight)
 
-xp = 80
-yp = 80
+xp = 40
+yp = 40
 # =============================================================================
 
 ox_srtm = 350
 oy_srtm = 750
 ssImg_omg_srtm=np.array(ds.GetRasterBand(5).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
 ssImg_gamm_srtm=np.array(ds.GetRasterBand(4).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
-ssImg_phi_srtm=np.array(ds.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
+ssImg_phi_srtm=np.array(ds.GetRasterBand(3).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
 ssImg_z_srtm=np.array(ds_z.GetRasterBand(1).ReadAsArray(ox_srtm, oy_srtm, xp, yp))
 
 
-ssImg_omg_lidar=np.array(ds_lidar.GetRasterBand(5).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
-ssImg_gamm_lidar = mk.get_range_prediction(ssImg_omg_srtm,ssImg_gamm_srtm,ssImg_omg_lidar,deg=2)
-ssImg_phi_lidar=np.array(ds_lidar.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+ssImg_omg_lidar=np.array(ds_lidar.GetRasterBand(4).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+#ssImg_gamm_lidar = mk.get_range_prediction(ssImg_omg_srtm,ssImg_gamm_srtm,ssImg_omg_lidar,deg=2)
+ssImg_gamm_lidar=np.array(ds_lidar.GetRasterBand(3).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
+ssImg_phi_lidar=np.array(ds_lidar.GetRasterBand(2).ReadAsArray(ox_srtm-xOffset, oy_srtm-yOffset, xp, yp))
 ssImg_z_lidar=np.array(ds_z_lidar.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset_z, oy_srtm-yOffset_z, xp, yp))
 
 n1, n2, n3 = ig.get_normal(ssImg_omg_srtm, ssImg_gamm_srtm, ssImg_phi_srtm)
@@ -77,35 +79,36 @@ grad_pred[:,:,1] = -n2_pred/n3_pred
 #z_kalman = merged_filter(ssImg_z_srtm,grad_pred,10,10)
 z_kalman = kf.Kalman1D(ssImg_z_srtm,grad_pred,10,10)
 
+start = 5
+end = 10
 xx, yy = np.meshgrid(range(xp), range(yp))
+#plt3d = plt.figure().gca(projection='3d')
+#plt3d.plot_surface(xx[1:,1:], yy[1:,1:], z_kalman[1:,1:])
+#plt.title("z_kalman")
+#plt.show()
+
 plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx[1:,1:], yy[1:,1:], z_kalman[1:,1:])
-plt.title("z_kalman")
-plt.show()
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z_srtm)
-plt.title("z_srtm")
-plt.show()
-ssImg_z_lidar = ssImg_z_lidar - (ssImg_z_lidar[0,0] - ssImg_z_srtm[0,0])
-plt3d = plt.figure().gca(projection='3d')
-plt3d.plot_surface(xx, yy, ssImg_z_lidar)
-plt.title("z_lidar")
+plt3d.plot_surface(xx[start:end,start:end], yy[start:end,start:end], ssImg_z_lidar[start:end,start:end])
+plt3d.quiver(xx[start:end,start:end],yy[start:end,start:end],ssImg_z_lidar[start:end,start:end],n1_pred[start:end,start:end],n2_pred[start:end,start:end],n3_pred[start:end,start:end],length=1)
+plt.title("z_lidar et normales associées")
 plt.show()
 
-plt.figure(figsize=(10,10))
-plt.subplot(131)
-plt.imshow(z_kalman)
-plt.title("z_Kalman")
-#plt.colorbar()
-plt.subplot(132)
-plt.imshow(ssImg_z_srtm)
-plt.title("z_srtm")
-#plt.colorbar()
-plt.subplot(133)
-plt.imshow(ssImg_z_lidar)
-plt.title("z_lidar")
-#plt.colorbar()
-plt.show()
+#ssImg_z_lidar = ssImg_z_lidar - (ssImg_z_lidar[0,0] - ssImg_z_srtm[0,0])
+#plt3d = plt.figure().gca(projection='3d')
+#plt3d.plot_surface(xx, yy, ssImg_z_lidar)
+#plt.title("z_lidar")
+#plt.show()
+
+#fig,axs=plt.subplots(1,3,figsize=(10,4))
+#axs[0].imshow(z_kalman)
+#axs[0].set_title("z_Kalman")
+##plt.colorbar()
+#axs[1].imshow(ssImg_z_srtm)
+#axs[1].set_title("z_srtm")
+##plt.colorbar()
+#axs[2].imshow(ssImg_z_lidar)
+#axs[2].set_title("z_lidar")
+#fig.show()
 
 
 print(np.mean(ssImg_z_lidar-ssImg_z_srtm))

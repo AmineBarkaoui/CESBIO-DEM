@@ -43,14 +43,17 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 def get_normal(az,ran,phi):
-    n3_kvh = -np.cos(az)
-    n2_kvh = -np.sin(ran)
-    n1_kvh = 1 - n2_kvh**2 - n3_kvh**2
-    n1_kvh[np.where(n1_kvh<0)] = 0
-    n1_kvh = np.sqrt(n1_kvh)
-    n3 = n3_kvh*np.sin(phi)
-    n2 = n2_kvh*np.sin(phi)*cos(radians(8))
-    n1 = n1_kvh*cos(radians(8))
+#    n3_kvh = -np.cos(az)
+#    n2_kvh = -np.sin(ran)
+#    n1_kvh = 1 - n2_kvh**2 - n3_kvh**2
+#    n1_kvh[np.where(n1_kvh<0)] = 0
+#    n1_kvh = np.sqrt(n1_kvh)
+    n1_kvh = -np.tan(az)/np.sqrt(1+np.tan(az)**2+np.tan(ran)**2)
+    n2_kvh = -np.tan(ran)/np.sqrt(1+np.tan(az)**2+np.tan(ran)**2)
+    n3_kvh = np.sqrt(1/(1+np.tan(az)**2+np.tan(ran)**2))
+    n3 = n3_kvh*np.cos(phi)
+    n1 = n1_kvh*np.cos(phi)*np.cos(radians(8))
+    n2 = n2_kvh*np.cos(radians(8))
     return n1, n2, n3
 
 

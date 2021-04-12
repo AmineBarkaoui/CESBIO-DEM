@@ -37,7 +37,7 @@ def Kalman_DTM(z,u,dx,dy):
     # x[0,:,2]=model_bias[0,:,1]
     # x[:,0,2]=model_bias[:,0,1]
     Q=np.array([[5,0,0],[0,0.17,0],[0,0,0.17]]) # to be set
-    R=5
+    R=-1000
     
     for i in range(1,z.shape[0]):
         for j in range(1,z.shape[1]):
@@ -75,17 +75,16 @@ def Kalman_DTM(z,u,dx,dy):
 
 def Kalman1D(z,u,dx,dy ):  
     # image de taille X*Y
-                        
-            
+                             
     # u: gradient SAR
     
     #xSTRM: vecteur mesure secondaire
-                                     
+    
     # vecteur d'état 
     Fx=np.array([[1,-dx,0],[0,1,0],[0,0,1]]) # transition matrix
     Fy=np.array([[1,0,-dy],[0,1,0],[0,0,1]])
     
-    L=1000 #nombre grand car P00 inconnu to be set
+    L=10000 #nombre grand car P00 inconnu to be set
     P=np.zeros((z.shape[0],z.shape[1],3,3))
     P[0,:]=np.array([[L,0,0],[0,L,0],[0,0,L]])
     P[:,0]=np.array([[L,0,0],[0,L,0],[0,0,L]])
@@ -99,7 +98,7 @@ def Kalman1D(z,u,dx,dy ):
     # x[0,:,2]=model_bias[0,:,1]
     # x[:,0,2]=model_bias[:,0,1]
     Q=np.array([[5,0,0],[0,0.17,0],[0,0,0.17]]) # to be set
-    R=5
+    R=10
     
     for i in range(0,z.shape[0]):
         for j in range(0,z.shape[1]):
@@ -131,7 +130,7 @@ def Kalman1D(z,u,dx,dy ):
             elif j!=0:
                 # step 1
                 x[i,j]=Fx@x[i,j-1] 
-                x[i,j,0]+=10 #B@u[i,j]
+                x[i,j]+=B@u[i,j]
                 
                 # step 2
                 P[i,j]=Fx@P[i,j-1]@Fx.T + Q*dx
@@ -146,14 +145,13 @@ def Kalman1D(z,u,dx,dy ):
                 K=P[i,j,:,0]/S
                 
                 # step 6
-                x[i,j]+=y*K
+                #x[i,j]+=y*K
                 
                 # step 7
                 A=np.column_stack((K,np.zeros(3)))
                 A=np.column_stack((A,np.zeros(3)))
                 P[i,j]=(np.eye(3)-A)@P[i,j]     
   
-          
     return x[:,:,0]          
             
 #            
