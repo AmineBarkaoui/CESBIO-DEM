@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 #import scipy.fftpack
-#from math import *
+from math import *
 
 import integ_normale as ig
 import kalman_filter as kf
@@ -70,7 +70,15 @@ ssImg_z_lidar=np.array(ds_z_lidar.GetRasterBand(1).ReadAsArray(ox_srtm-xOffset_z
 n1, n2, n3 = ig.get_normal(ssImg_omg_srtm, ssImg_gamm_srtm, ssImg_phi_srtm)
 z = ig.get_z(n1, n2, n3, ssImg_z_srtm[0,0], xp, yp)
 
+n,p = ssImg_omg_lidar.shape
+test_x = np.zeros(ssImg_omg_lidar.shape)
+test_y = np.zeros(ssImg_omg_lidar.shape)
+test_z = (pi/2)*np.ones(ssImg_omg_lidar.shape)
+
+print("---------------------------------------------------------------")
 n1_pred, n2_pred, n3_pred = ig.get_normal(ssImg_omg_lidar,ssImg_gamm_lidar,ssImg_phi_lidar)
+
+# print(n1_pred,n2_pred,n3_pred)
 
 grad_pred = np.zeros((n1_pred.shape[0],n1_pred.shape[1],2))
 grad_pred[:,:,0] = -n1_pred/n3_pred
@@ -89,8 +97,11 @@ xx, yy = np.meshgrid(range(xp), range(yp))
 
 plt3d = plt.figure().gca(projection='3d')
 plt3d.plot_surface(xx[start:end,start:end], yy[start:end,start:end], ssImg_z_lidar[start:end,start:end])
-plt3d.quiver(xx[start:end,start:end],yy[start:end,start:end],ssImg_z_lidar[start:end,start:end],n1_pred[start:end,start:end],n2_pred[start:end,start:end],n3_pred[start:end,start:end],length=1)
+plt3d.quiver(xx[start:end,start:end],yy[start:end,start:end],ssImg_z_lidar[start:end,start:end],
+             n1_pred[start:end,start:end],n2_pred[start:end,start:end],n3_pred[start:end,start:end],color='g',length=1)
 plt.title("z_lidar et normales associées")
+plt.xlabel("x")
+plt.ylabel("y")
 plt.show()
 
 #ssImg_z_lidar = ssImg_z_lidar - (ssImg_z_lidar[0,0] - ssImg_z_srtm[0,0])
